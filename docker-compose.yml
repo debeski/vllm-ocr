@@ -1,0 +1,44 @@
+services:
+  vllm-ocr:
+    build: .
+    runtime: nvidia
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+        limits:
+          memory: 24G
+          cpus: "8.0"
+    environment:
+      - NVIDIA_VISIBLE_DEVICES=all
+      - JUPYTER_TOKEN=db
+      - JUPYTER_PORT=8888
+      - CUDA_HOME=/usr/local/cuda
+      - VLLM_COMPILE=0
+      - VLLM_TORCH_COMPILE_MODE=none
+      - VLLM_ATTENTION_BACKEND=TRITON_ATTN
+      - VLLM_TORCH_COMPILE=disable
+      - VLLM_USE_FLASH_ATTENTION=0
+    ports:
+      - "8888:8888"
+      - "7860:7860"
+    working_dir: /workspace
+    restart: "no"
+    shm_size: "8gb"
+    volumes:
+      # - model_cache:/root/.cache/huggingface
+      - ./ocr_app.py:/workspace/ocr_app.py:ro
+      - ./entrypoint.sh:/workspace/entrypoint.sh:ro
+    healthcheck:
+      test: ["CMD", "python3", "-c", "import requests; requests.get('http://0.0.0.0:7860', timeout=5)"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 120s
+
+volumes:
+  model_cache:
+    driver: local

@@ -1,0 +1,7 @@
+gradio
+Pillow
+PyMuPDF
+jupyter
+requests
+openpyxl
+torch-c-dlpack-ext

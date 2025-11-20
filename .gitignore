@@ -1,0 +1,23 @@
+# Ignore Python bytecode files
+**/__pycache__/
+*.pyc
+*.pyo
+**/.DS_Store
+.VSCodeCounter
+
+# Ignore app directories
+logs
+media
+staticfiles
+xpose
+
+# Ignore Docker-related files
+# .dockerignore
+
+# Ignore management log Files
+logs.txt
+
+# Ignore celery-related files
+celerybeat-schedule
+celerybeat-schedule-shm
+celerybeat-schedule-wal

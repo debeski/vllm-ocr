@@ -1,0 +1,25 @@
+Non-Commercial License for DB-OCR
+
+Copyright (c) 2025 DeBeski
+
+Permission is hereby granted, free of charge, to any person obtaining a copy of this repository and associated materials ("DB-OCR"), to use, copy, modify, and distribute this software **for non-commercial purposes only**. Commercial use, including any use intended for or generating revenue, is strictly prohibited without prior written consent from the copyright holder.
+
+This repository includes or relies on the following open-source software components:
+
+- DeepSeek-OCR (https://github.com/deepseek-ai/DeepSeek-OCR) – original license applies.
+- vLLM (https://github.com/vllm-project/vllm) – MIT License.
+- PyTorch / CUDA (https://pytorch.org/) – BSD-style license.
+- Gradio (https://gradio.app/) – Apache License 2.0.
+- Pillow (https://python-pillow.org/) – PIL license.
+- PyMuPDF / fitz (https://pymupdf.readthedocs.io/) – GNU AGPL v3.
+- Jupyter (https://jupyter.org/) – BSD-style license.
+- Requests (https://docs.python-requests.org/) – Apache 2.0 License.
+- Docker (https://www.docker.com/) – Apache License 2.0.
+
+The use of this repository does **not override the licenses of the included dependencies**. Users must comply with the original licenses of all third-party components.
+
+DISCLAIMER:
+
+DB-OCR is a hardware-intensive AI system that includes vLLM with DeepSeek-OCR baked into a container. Running this software creates a local AI processing agent capable of analyzing images and PDFs. Users are responsible for ensuring that their system has sufficient GPU and memory resources to run this software safely. It is recommended to have a modern NVIDIA GPU, equivalent to or stronger than GeForce RTX 2070, with up-to-date drivers.
+
+THIS SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, OR NON-INFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES, OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF, OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
