@@ -1,5 +1,7 @@
-from fastapi import FastAPI, UploadFile
-from .ocr_app import deepseek_ocr  # your OCR function
+from fastapi import FastAPI, UploadFile, Form
+from ocr_app import run_ocr
+import tempfile
+import shutil
 
 app = FastAPI()
 
