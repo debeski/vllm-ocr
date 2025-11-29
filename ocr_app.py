@@ -49,12 +49,12 @@ def validate_file(file):
         raise ValueError(f"File not found: {file}")
     if path.stat().st_size > 20 * 1024**2:
         raise ValueError("File too large (max 20MB)")
-    if path.suffix.lower() not in {'.pdf', '.png', '.jpg', '.jpeg', '.gif', '.bmp', '.tiff', '.webp'}:
+    if path.suffix.lower() not in {'.pdf', '.png', '.jpg', '.jpeg', '.gif', '.bmp', '.tif', '.webp'}:
         raise ValueError(f"Unsupported file type: {path.suffix}")
     return path
 
-def run_ocr(file, rotation):
-    """Run OCR on uploaded file and return extracted text."""
+def run_ocr(file, rotation, mode):
+    """Run OCR on uploaded file and return extracted text based on selected mode."""
     try:
         file_path = validate_file(file)
 
@@ -70,9 +70,14 @@ def run_ocr(file, rotation):
         if rot != 0:
             images = [img.rotate(-rot, expand=True) for img in images]
 
+        # Select prompt based on user choice
+        if mode == "Raw text":
+            prompt = "<image>\nFree OCR."
+        else:
+            prompt = "<image>\n<|grounding|>Convert the document to markdown."
+
         results = []
         for idx, img in enumerate(images):
-            prompt = "<image>\n<|grounding|>Convert the document to markdown."
             model_input = [{"prompt": prompt, "multi_modal_data": {"image": img}}]
             params = SamplingParams(
                 temperature=0.0,
@@ -222,11 +227,13 @@ def launch_gradio():
         # ---------------- Row 1: File input, rotation, OCR ----------------
         with gr.Row():
             file_input = gr.File(height=150, label="Choose Image or PDF (MAX: 20MB)",
-                                file_types=[".pdf", ".png", ".jpg", ".jpeg", ".gif", ".bmp", ".tiff", ".webp"])
+                                file_types=[".pdf", ".png", ".jpg", ".jpeg", ".gif", ".bmp", ".tif", ".webp"])
         # ---------------- Row 2: Rotation, OCR, Excel ----------------
         with gr.Row():
             with gr.Column(scale=1):
                 rotation_dropdown = gr.Dropdown(["0", "90", "180", "270"], value="0", label="Rotate (clockwise)", interactive=False)
+            with gr.Column(scale=1):
+                prompt_mode = gr.Radio(["Raw text", "Text + Markdown"], value="Text + Markdown", label="OCR Output Format")
             with gr.Column(scale=1):
                 ocr_btn = gr.Button("OCR", variant="primary", interactive=False)
                 excel_btn = gr.DownloadButton("Export Tables to xlsx", interactive=False)
@@ -299,7 +306,15 @@ def launch_gradio():
             inputs=text_output,
             outputs=excel_btn
         )
-
+        ocr_btn.click(
+            fn=run_ocr,
+            inputs=[file_input, rotation_dropdown, prompt_mode],
+            outputs=text_output
+        ).then(
+            fn=show_excel_button,
+            inputs=text_output,
+            outputs=excel_btn
+        )
     demo.launch(server_name="0.0.0.0", server_port=7860, share=False)
 
 if __name__ == "__main__":

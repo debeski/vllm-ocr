@@ -1,6 +1,6 @@
 services:
   vllm-ocr:
-    build: .
+    image: debeski/vllm-ocr:latest
     runtime: nvidia
     deploy:
       resources:
@@ -32,6 +32,7 @@ services:
       # - model_cache:/root/.cache/huggingface
       - ./ocr_app.py:/workspace/ocr_app.py:ro
       - ./entrypoint.sh:/workspace/entrypoint.sh:ro
+      - ./ocr_api.py:/workspace/ocr_api.py:ro
     healthcheck:
       test: ["CMD", "python3", "-c", "import requests; requests.get('http://0.0.0.0:7860', timeout=5)"]
       interval: 30s
