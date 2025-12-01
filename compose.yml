@@ -25,11 +25,11 @@ services:
     ports:
       - "8888:8888"
       - "7860:7860"
+      - "8001:8000"
     working_dir: /workspace
     restart: "no"
     shm_size: "8gb"
     volumes:
-      # - model_cache:/root/.cache/huggingface
       - ./ocr_app.py:/workspace/ocr_app.py:ro
       - ./entrypoint.sh:/workspace/entrypoint.sh:ro
       - ./ocr_api.py:/workspace/ocr_api.py:ro
@@ -39,7 +39,3 @@ services:
       timeout: 10s
       retries: 3
       start_period: 120s
-
-volumes:
-  model_cache:
-    driver: local

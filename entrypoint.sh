@@ -6,6 +6,7 @@ cleanup() {
     echo "Shutting down services..."
     kill $JUPYTER_PID 2>/dev/null || true
     kill $GRADIO_PID 2>/dev/null || true
+    kill $FASTAPI_PID 2>/dev/null || true
     exit 0
 }
 
@@ -14,7 +15,7 @@ trap cleanup SIGTERM SIGINT
 # Function to check HTTP endpoint
 check_http_service() {
     local url=$1
-    local max_attempts=10
+    local max_attempts=20
     local attempt=1
     
     while [ $attempt -le $max_attempts ]; do
@@ -22,23 +23,33 @@ check_http_service() {
             return 0
         fi
         
-        # Check if process is still alive
+        # Check if processes died
         if [ "$url" = "http://localhost:7860" ] && ! kill -0 $GRADIO_PID 2>/dev/null; then
             echo "❌ Gradio process died while waiting"
             return 1
         fi
+
+        if [ "$url" = "http://localhost:8000" ] && ! kill -0 $FASTAPI_PID 2>/dev/null; then
+            echo "❌ FastAPI process died while waiting"
+            return 1
+        fi
         
         echo "⏳ Waiting for service at $url... (attempt $attempt/$max_attempts)"
-        sleep 15
+        sleep 10
         attempt=$((attempt + 1))
     done
     
     return 1
 }
 
-# Start JupyterLab in background
+##############################################
+# Start JupyterLab
+##############################################
+
 echo "Starting JupyterLab on port ${JUPYTER_PORT:-8888}..."
-jupyter lab --ip=0.0.0.0 --port=${JUPYTER_PORT:-8888} --no-browser --allow-root --NotebookApp.token=${JUPYTER_TOKEN:-db} --NotebookApp.password='' &
+jupyter lab --ip=0.0.0.0 --port=${JUPYTER_PORT:-8888} --no-browser --allow-root \
+    --NotebookApp.token=${JUPYTER_TOKEN:-db} --NotebookApp.password='' &
+
 JUPYTER_PID=$!
 
 # Wait for Jupyter
@@ -49,32 +60,49 @@ else
     exit 1
 fi
 
-# Start Gradio OCR app in background
+##############################################
+# Start Gradio OCR UI
+##############################################
+
 echo "Starting Gradio OCR app on port 7860..."
 python3 /workspace/ocr_app.py &
 GRADIO_PID=$!
 
-# Wait for Gradio
 if check_http_service "http://localhost:7860"; then
     echo "✅ Gradio app started successfully"
-    echo ""
-    echo "🎉 Both services are up and running:"
-    echo "- JupyterLab at: http://localhost:8888"
-    echo "- Gradio OCR at: http://localhost:7860"
-    echo ""
-    echo "If running the services in -d detached mode, Use 'docker compose down' to stop it"
-    echo "otherwise Press Ctrl + C twice"
-
 else
     echo "❌ Gradio failed to start properly"
-    if kill -0 $GRADIO_PID 2>/dev/null; then
-        echo "⚠️ Gradio process is running but not responding - model might still be loading"
-    else
-        echo "❌ Gradio process has terminated"
-        exit 1
-    fi
 fi
 
-# Keep container running
+##############################################
+# Start FastAPI OCR API
+##############################################
+
+echo "Starting FastAPI OCR API on port 8000..."
+uvicorn ocr_api:app --host 0.0.0.0 --port 8000 &
+FASTAPI_PID=$!
+
+if check_http_service "http://localhost:8000"; then
+    echo "✅ FastAPI OCR API started successfully"
+else
+    echo "❌ FastAPI failed to start properly"
+fi
+
+##############################################
+# Status summary
+##############################################
+
+echo ""
+echo "🎉 All services running:"
+echo "- JupyterLab: http://localhost:${JUPYTER_PORT:-8888}"
+echo "- Gradio UI:  http://localhost:7860"
+echo "- FastAPI OCR: http://localhost:8000/api/ocr"
+echo ""
+echo "Use Ctrl+C to stop (or docker compose down)"
+echo ""
+
+##############################################
+# Keep container alive
+##############################################
 wait -n
 cleanup

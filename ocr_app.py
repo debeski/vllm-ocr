@@ -12,7 +12,7 @@ import tempfile
 import pandas as pd
 from bs4 import BeautifulSoup
 
-# --- Config ---
+# ------------------ Configuration ------------------
 os.environ["VLLM_COMPILE"] = "0"
 os.environ["VLLM_TORCH_COMPILE_MODE"] = "none"
 
@@ -22,13 +22,40 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 vllm_logger = logging.getLogger("vllm")
-vllm_logger.setLevel(logging.INFO)
+vllm_logger.setLevel(logging.WARNING)
 
-# Global model variable
 llm = None
 pdf_pages_cache = {}
 
-# ---------------- OCR & Excel Functions ----------------
+# ---------------- OCR Model Loader ----------------
+def load_llm():
+    """Initialize the LLM model once"""
+    global llm
+    if llm is not None:
+        return
+    
+    # GPU check
+    if torch.cuda.is_available():
+        device_name = torch.cuda.get_device_name(0)
+        total_mem = torch.cuda.get_device_properties(0).total_memory
+        gb = 1024 ** 3
+        total_gb = total_mem / gb
+        
+        logger.info(f"Using GPU: {device_name}")
+        logger.info(f"Available GPU Memory: {total_gb:.2f} GB")
+    else:
+        logger.warning("CUDA not available — using CPU.")
+
+    # Load model
+    llm = LLM(
+        model="/workspace/model",
+        enable_prefix_caching=False,
+        mm_processor_cache_gb=0,
+        logits_processors=[NGramPerReqLogitsProcessor],
+    )
+    logger.info("OCR Model loaded successfully")
+
+# ----------- OCR Text & Excel Functions -----------
 def pdf_to_images(file_path):
     doc = fitz.open(file_path)
     images = []
@@ -56,6 +83,7 @@ def validate_file(file):
 def run_ocr(file, rotation, mode):
     """Run OCR on uploaded file and return extracted text based on selected mode."""
     try:
+        load_llm()
         file_path = validate_file(file)
 
         # Convert PDF to images
@@ -83,7 +111,7 @@ def run_ocr(file, rotation, mode):
                 temperature=0.0,
                 max_tokens=8192,
                 extra_args=dict(ngram_size=30, window_size=90, whitelist_token_ids={128821, 128822}),
-                skip_special_tokens=False,
+                skip_special_tokens=True,
             )
             output = llm.generate(model_input, params)[0].outputs[0].text
             results.append(f"--- Page {idx + 1} ---\n{output}")
@@ -183,42 +211,8 @@ def export_excel_from_text(text):
     path = extract_tables_to_excel(text)
     return path
 
-# ---------------- Main App ----------------
+# -------------- Gradio App Loader  ---------------
 def launch_gradio():
-    global llm
-
-    # GPU check
-    if torch.cuda.is_available():
-        device_name = torch.cuda.get_device_name(0)
-
-        # Memory stats
-        total_mem = torch.cuda.get_device_properties(0).total_memory
-        allocated = torch.cuda.memory_allocated(0)
-        reserved = torch.cuda.memory_reserved(0)
-
-        # Convert to GB
-        gb = 1024 ** 3
-        total_gb = total_mem / gb
-        allocated_gb = allocated / gb
-        reserved_gb = reserved / gb
-
-        logger.info(f"Using GPU: {device_name}")
-        logger.info(f"Available GPU Memory: {total_gb:.2f} GB")
-        logger.info(f"Allocated Memory: {allocated_gb:.2f} GB")
-        logger.info(f"Reserved Memory: {reserved_gb:.2f} GB")
-
-    else:
-        logger.warning("CUDA not available — using CPU.")
-
-    # Load model
-    llm = LLM(
-        model="/workspace/model",
-        enable_prefix_caching=False,
-        mm_processor_cache_gb=0,
-        logits_processors=[NGramPerReqLogitsProcessor],
-    )
-    logger.info("Model loaded successfully")
-
 
     # Gradio UI
     with gr.Blocks() as demo:
@@ -247,7 +241,7 @@ def launch_gradio():
                     total_pages_display = gr.Textbox(label="Total pages", interactive=False)
 
             with gr.Column(scale=1):
-                text_output = gr.Textbox(label="RAW text + Markdown", lines=30, show_copy_button=True)
+                text_output = gr.Textbox(label="RAW text + Markdown", lines=30)
 
 
         def show_excel_button(ocr_text):
@@ -290,16 +284,6 @@ def launch_gradio():
             inputs=page_input,
             outputs=preview_output
         )
-        # OCR button extracts text AND shows/hides Excel button based on content
-        ocr_btn.click(
-            fn=run_ocr,
-            inputs=[file_input, rotation_dropdown],
-            outputs=text_output
-        ).then(
-            fn=show_excel_button,
-            inputs=text_output,
-            outputs=excel_btn
-        )
         # Excel button exports tables from textbox and downloads directly
         excel_btn.click(
             fn=export_excel_from_text,
@@ -317,5 +301,7 @@ def launch_gradio():
         )
     demo.launch(server_name="0.0.0.0", server_port=7860, share=False)
 
+# --------------- Main App Loader  ----------------
 if __name__ == "__main__":
+    load_llm()
     launch_gradio()

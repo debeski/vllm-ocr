@@ -2,7 +2,7 @@
 # DeepSeek-OCR + vLLM (nightly) with Pre-Baked Model
 # ============================================================
 # Use vLLM nightly image from Docker Hub (includes PyTorch + CUDA + vLLM)
-FROM vllm/vllm-openai:nightly
+FROM vllm/vllm-openai:v0.11.1
 # Set Environment Variables
 ENV DEBIAN_FRONTEND=noninteractive
 ENV HF_HOME=/workspace/.cache/huggingface
@@ -43,5 +43,5 @@ COPY . /workspace/
 # 5️⃣ Final setup steps
 # ------------------------------------------------------------
 RUN chmod +x /workspace/entrypoint.sh
-EXPOSE 7860 8888
+EXPOSE 7860 8888 8000
 ENTRYPOINT ["/workspace/entrypoint.sh"]
