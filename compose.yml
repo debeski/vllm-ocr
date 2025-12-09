@@ -1,6 +1,9 @@
+name: ocr_app
+
 services:
-  vllm-ocr:
+  vllmocr:
     image: debeski/vllm-ocr:latest
+    container_name: ocr_app
     runtime: nvidia
     deploy:
       resources:
@@ -22,20 +25,16 @@ services:
       - VLLM_ATTENTION_BACKEND=TRITON_ATTN
       - VLLM_TORCH_COMPILE=disable
       - VLLM_USE_FLASH_ATTENTION=0
-    ports:
-      - "8888:8888"
-      - "7860:7860"
-      - "8001:8000"
     working_dir: /workspace
     restart: "no"
     shm_size: "8gb"
-    volumes:
-      - ./ocr_app.py:/workspace/ocr_app.py:ro
-      - ./entrypoint.sh:/workspace/entrypoint.sh:ro
-      - ./ocr_api.py:/workspace/ocr_api.py:ro
     healthcheck:
       test: ["CMD", "python3", "-c", "import requests; requests.get('http://0.0.0.0:7860', timeout=5)"]
       interval: 30s
       timeout: 10s
       retries: 3
       start_period: 120s
+    ports:
+      - "8888:8888"
+      - "7860:7860"
+      - "8000:8000"

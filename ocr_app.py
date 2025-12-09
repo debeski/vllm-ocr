@@ -111,7 +111,7 @@ def run_ocr(file, rotation, mode):
                 temperature=0.0,
                 max_tokens=8192,
                 extra_args=dict(ngram_size=30, window_size=90, whitelist_token_ids={128821, 128822}),
-                skip_special_tokens=True,
+                skip_special_tokens=False,
             )
             output = llm.generate(model_input, params)[0].outputs[0].text
             results.append(f"--- Page {idx + 1} ---\n{output}")
